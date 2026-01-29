@@ -15,9 +15,7 @@ now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Current Time =", current_time)
 
-# ==================================================
-# SILENCE EXPECTED WARNINGS
-# ==================================================
+
 warnings.filterwarnings(
     "ignore",
     message="Precision loss occurred in moment calculation"
@@ -42,7 +40,7 @@ def bandpass(signal, fs, low=0.5, high=35, order=4):
     return filtfilt(b, a, signal)
 
 # ==================================================
-# QUALITY METRICS (STEP 3)
+# QUALITY METRICS
 # ==================================================
 def detect_flat_metrics(signal, fs, window_sec=1.0):
     window = int(window_sec * fs)
@@ -87,7 +85,7 @@ def missing_percentage(signal):
     return np.sum(np.isnan(signal)) / len(signal)
 
 # ==================================================
-# HR COMPUTATION (STEP 5)
+# HR COMPUTATION
 # ==================================================
 def compute_hr(signal, fs):
     try:
@@ -113,7 +111,7 @@ def rpeak_metrics(signal, fs):
         }
 
 # ==================================================
-# WINDOW HR (STEP 6)
+# WINDOW HR
 # ==================================================
 def window_hr(signal, fs, window_sec=10):
     window = int(window_sec * fs)
@@ -186,7 +184,7 @@ quality_df = pd.DataFrame(results)
 quality_df.to_excel(OUTPUT_XLSX, index=False)
 
 # ==================================================
-# CONDITIONAL FORMATTING (EXCEL-NATIVE)
+# CONDITIONAL FORMATTING FOR ALERTS (EXCEL-NATIVE)
 # ==================================================
 wb = load_workbook(OUTPUT_XLSX)
 ws = wb.active
@@ -241,17 +239,17 @@ ws.conditional_formatting.add(
     )
 )
 
-# ---------- HR failure ----------
-col = cols["estimated_hr"]
+# ---------- HF noise ----------
+col = cols["hf_noise"]
 ws.conditional_formatting.add(
     f"{col}2:{col}{last_row}",
-    FormulaRule(
-        formula=[
-            f"OR({col}2<40,{col}2>180,ISBLANK({col}2))"
-        ],
+    CellIsRule(
+        operator="greaterThan",
+        formula=["0.15"],
         fill=red
     )
 )
+
 
 # ---------- kurtosis failure ----------
 col = cols["kurtosis"]
@@ -260,6 +258,18 @@ ws.conditional_formatting.add(
     FormulaRule(
         formula=[
             f"OR({col}2<5,{col}2>30,ISBLANK({col}2))"
+        ],
+        fill=red
+    )
+)
+
+# ---------- HR failure ----------
+col = cols["estimated_hr"]
+ws.conditional_formatting.add(
+    f"{col}2:{col}{last_row}",
+    FormulaRule(
+        formula=[
+            f"OR({col}2<40,{col}2>180,ISBLANK({col}2))"
         ],
         fill=red
     )
